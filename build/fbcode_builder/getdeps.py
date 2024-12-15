@@ -167,6 +167,7 @@ class ProjectCmdBase(SubCmd):
         parser.add_argument(
             "--test-dependencies",
             action="store_true",
+            default=False,
             help="Enable building tests for dependencies as well.",
         )
         parser.add_argument(
@@ -503,6 +504,36 @@ class ShowScratchDirCmd(SubCmd):
         opts = setup_build_options(args)
         print(opts.scratch_dir)
 
+@cmd("show-cache-file-name", "show the cache file name")
+class ShowCacheFileCmd(ProjectCmdBase):
+    def run_project_cmd(self, args, loader, manifest):
+        cache = cache_module.create_cache()
+        if args.recursive:
+            manifests = loader.manifests_in_dependency_order()
+        else:
+            manifests = [manifest]
+
+        for m in manifests:
+            fetcher = loader.create_fetcher(manifest)
+            if isinstance(fetcher, SystemPackageFetcher):
+                # We are guaranteed that if the fetcher is set to
+                # SystemPackageFetcher then this item is completely
+                # satisfied by the appropriate system packages
+                return
+            cached_project = CachedProject(cache, loader, m)
+            if args.recursive:
+                print(f"{m.name}_CACHE={cached_project.cache_file_name}")
+            else:
+                print(cached_project.cache_file_name)
+
+    def setup_project_cmd_parser(self, parser):
+        parser.add_argument(
+            "--recursive",
+            help="print the transitive deps also",
+            action="store_true",
+            default=False,
+        )
+
 
 @cmd("show-build-dir", "print the build dir for a given project")
 class ShowBuildDirCmd(ProjectCmdBase):
@@ -514,7 +545,10 @@ class ShowBuildDirCmd(ProjectCmdBase):
 
         for m in manifests:
             inst_dir = loader.get_project_build_dir(m)
-            print(inst_dir)
+            if args.recursive:
+                print(f"{m.name}_BUILD={inst_dir}")
+            else:
+                print(inst_dir)
 
     def setup_project_cmd_parser(self, parser):
         parser.add_argument(
@@ -541,7 +575,10 @@ class ShowInstDirCmd(ProjectCmdBase):
                 # satisfied by the appropriate system packages
                 continue
             inst_dir = loader.get_project_install_dir_respecting_install_prefix(m)
-            print(inst_dir)
+            if args.recursive:
+                print(f"{m.name}_INSTALL={inst_dir}")
+            else:
+                print(inst_dir)
 
     def setup_project_cmd_parser(self, parser):
         parser.add_argument(
@@ -562,7 +599,16 @@ class ShowSourceDirCmd(ProjectCmdBase):
 
         for m in manifests:
             fetcher = loader.create_fetcher(m)
-            print(fetcher.get_src_dir())
+            if isinstance(fetcher, SystemPackageFetcher):
+                # We are guaranteed that if the fetcher is set to
+                # SystemPackageFetcher then this item is completely
+                # satisfied by the appropriate system packages
+                continue
+            src_dir=fetcher.get_src_dir()
+            if args.recursive:
+                print(f"{m.name}_SOURCE={src_dir}")
+            else:
+                print(src_dir)
 
     def setup_project_cmd_parser(self, parser):
         parser.add_argument(
@@ -1086,12 +1132,14 @@ jobs:
                 )
                 out.write("      shell: cmd\n")
 
-                # The git installation may not like long filenames, so tell it
-                # that we want it to use them!
                 out.write("    - name: Fix Git config\n")
-                out.write("      run: git config --system core.longpaths true\n")
-                out.write("    - name: Disable autocrlf\n")
-                out.write("      run: git config --system core.autocrlf false\n")
+                out.write("      run: >\n")
+                out.write("        git config --system core.longpaths true &&\n")
+                out.write("        git config --system core.autocrlf false &&\n")
+                # cxx crate needs symlinks enabled
+                out.write("        git config --system core.symlinks true\n")
+                # && is not supported on default windows powershell, so use cmd
+                out.write("      shell: cmd\n")
 
             out.write("    - uses: actions/checkout@v4\n")
 
@@ -1171,12 +1219,17 @@ jobs:
                     out.write("      uses: dtolnay/rust-toolchain@stable\n")
                     break
 
+            
+            cache = cache_module.create_cache() if args.use_build_cache else None
+
             # Normal deps that have manifests
             for m in projects:
                 if m == manifest or m.name == "rust":
                     continue
                 ctx = loader.ctx_gen.get_context(m.name)
                 if m.get_repo_url(ctx) != main_repo_url:
+                    if cache:
+                        cached_project = CachedProject(cache, loader, m)
                     out.write("    - name: Fetch %s\n" % m.name)
                     out.write(
                         f"      run: {getdepscmd}{allow_sys_arg} fetch --no-tests {m.name}\n"
