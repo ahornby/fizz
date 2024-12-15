@@ -1086,12 +1086,14 @@ jobs:
                 )
                 out.write("      shell: cmd\n")
 
-                # The git installation may not like long filenames, so tell it
-                # that we want it to use them!
                 out.write("    - name: Fix Git config\n")
-                out.write("      run: git config --system core.longpaths true\n")
-                out.write("    - name: Disable autocrlf\n")
-                out.write("      run: git config --system core.autocrlf false\n")
+                out.write("      run: >\n")
+                out.write("        git config --system core.longpaths true &&\n")
+                out.write("        git config --system core.autocrlf false &&\n")
+                # cxx crate needs symlinks enabled
+                out.write("        git config --system core.symlinks true\n")
+                # && is not supported on default windows powershell, so use cmd
+                out.write("      shell: cmd\n")
 
             out.write("    - uses: actions/checkout@v4\n")
 
@@ -1172,15 +1174,23 @@ jobs:
                     break
 
             # Normal deps that have manifests
+            fetch_cmds = []
             for m in projects:
                 if m == manifest or m.name == "rust":
                     continue
                 ctx = loader.ctx_gen.get_context(m.name)
                 if m.get_repo_url(ctx) != main_repo_url:
-                    out.write("    - name: Fetch %s\n" % m.name)
-                    out.write(
-                        f"      run: {getdepscmd}{allow_sys_arg} fetch --no-tests {m.name}\n"
-                    )
+                    fetch_cmds.append( f"{getdepscmd}{allow_sys_arg} fetch --no-tests {m.name}")
+
+            if len(fetch_cmds) > 0:
+                # can do all the fetches in parallel
+                out.write("    - name: Fetch dependencies\n")
+                out.write("      run: >\n        ")
+                out.write(" &&\n        ".join(fetch_cmds))
+                out.write("\n")
+                if build_opts.is_windows():
+                    # && is not supported on default windows powershell, so use cmd
+                    out.write("      shell: cmd\n")
 
             for m in projects:
                 if m != manifest:

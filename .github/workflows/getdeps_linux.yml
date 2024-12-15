@@ -24,56 +24,33 @@ jobs:
       run: sudo python3 build/fbcode_builder/getdeps.py --allow-system-packages install-system-deps --recursive fizz
     - name: Install packaging system deps
       run: sudo python3 build/fbcode_builder/getdeps.py --allow-system-packages install-system-deps --recursive patchelf
-    - name: Fetch ninja
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests ninja
-    - name: Fetch cmake
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests cmake
-    - name: Fetch boost
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests boost
-    - name: Fetch double-conversion
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests double-conversion
-    - name: Fetch fast_float
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests fast_float
-    - name: Fetch fmt
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests fmt
-    - name: Fetch gflags
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests gflags
-    - name: Fetch glog
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests glog
-    - name: Fetch googletest
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests googletest
-    - name: Fetch libdwarf
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libdwarf
-    - name: Fetch libevent
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libevent
-    - name: Fetch lz4
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests lz4
-    - name: Fetch snappy
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests snappy
-    - name: Fetch zstd
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests zstd
-    - name: Fetch openssl
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests openssl
-    - name: Fetch liboqs
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests liboqs
-    - name: Fetch zlib
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests zlib
-    - name: Fetch autoconf
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests autoconf
-    - name: Fetch automake
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests automake
-    - name: Fetch libtool
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libtool
-    - name: Fetch libsodium
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libsodium
-    - name: Fetch libiberty
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libiberty
-    - name: Fetch libunwind
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libunwind
-    - name: Fetch xz
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests xz
-    - name: Fetch folly
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests folly
+    - name: Fetch dependencies
+      run: >
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests ninja &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests cmake &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests boost &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests double-conversion &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests fast_float &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests fmt &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests gflags &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests glog &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests googletest &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libdwarf &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libevent &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests lz4 &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests snappy &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests zstd &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests openssl &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests liboqs &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests zlib &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests autoconf &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests automake &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libtool &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libsodium &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libiberty &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libunwind &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests xz &&
+        python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests folly
     - name: Build ninja
       run: python3 build/fbcode_builder/getdeps.py --allow-system-packages build --no-tests ninja
     - name: Build cmake
