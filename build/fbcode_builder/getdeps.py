@@ -1221,13 +1221,50 @@ jobs:
                 if m == manifest or m.name == "rust":
                     continue
                 ctx = loader.ctx_gen.get_context(m.name)
-                if m.get_repo_url(ctx) != main_repo_url:
-                    out.write("    - name: Fetch %s\n" % m.name)
+                if m.get_repo_url(ctx) == main_repo_url:
+                    continue
+                if args.use_build_cache and build_opts.is_windows():
+                    # Source download/extract steps like boost and perl especially slow
+                    # on windows, so cache them
+                    out.write(f"    - name: Restore {m.name} source from cache\n")
+                    out.write(f"      id: restore_source_{m.name}\n")
                     out.write(
                         f"      if: ${{{{ steps.paths.outputs.{m.name}_SOURCE }}}}\n"
                     )
+                    out.write("      uses: actions/cache/restore@v4\n")
+                    out.write("      with:\n")
                     out.write(
-                        f"      run: {getdepscmd}{allow_sys_arg} fetch --no-tests {m.name}\n"
+                        f"       path: ${{{{ steps.paths.outputs.{m.name}_SOURCE }}}}\n"
+                    )
+                    out.write(
+                        f"       key: ${{{{ steps.paths.outputs.{m.name}_CACHE_KEY }}}}-source\n"
+                    )
+
+                out.write("    - name: Fetch %s\n" % m.name)
+                if args.use_build_cache and build_opts.is_windows():
+                    out.write(
+                        f"      if: ${{{{ steps.paths.outputs.{m.name}_SOURCE && ! steps.restore_source_{m.name}.outputs.cache-hit }}}}\n"
+                    )
+                else:
+                    out.write(
+                        f"      if: ${{{{ steps.paths.outputs.{m.name}_SOURCE }}}}\n"
+                    )
+                out.write(
+                    f"      run: {getdepscmd}{allow_sys_arg} fetch --no-tests {m.name}\n"
+                )
+
+                if args.use_build_cache and build_opts.is_windows():
+                    out.write(f"    - name: Save {m.name} source to cache\n")
+                    out.write("      uses: actions/cache/save@v4\n")
+                    out.write(
+                        f"      if: ${{{{ steps.paths.outputs.{m.name}_SOURCE && ! steps.restore_source_{m.name}.outputs.cache-hit }}}}\n"
+                    )
+                    out.write("      with:\n")
+                    out.write(
+                        f"       path: ${{{{ steps.paths.outputs.{m.name}_SOURCE }}}}\n"
+                    )
+                    out.write(
+                        f"       key: ${{{{ steps.paths.outputs.{m.name}_CACHE_KEY }}}}-source\n"
                     )
 
             for m in projects:
@@ -1241,8 +1278,8 @@ jobs:
                     has_same_repo_dep = True
 
                 if args.use_build_cache and not src_dir_arg:
-                    out.write(f"    - name: Restore {m.name} from cache\n")
-                    out.write(f"      id: restore_{m.name}\n")
+                    out.write(f"    - name: Restore {m.name} install from cache\n")
+                    out.write(f"      id: restore_install_{m.name}\n")
                     # only need to restore if would build it
                     out.write(
                         f"      if: ${{{{ steps.paths.outputs.{m.name}_SOURCE }}}}\n"
@@ -1260,7 +1297,7 @@ jobs:
                 if not src_dir_arg:
                     if args.use_build_cache:
                         out.write(
-                            f"      if: ${{{{ steps.paths.outputs.{m.name}_SOURCE && ! steps.restore_{m.name}.outputs.cache-hit }}}}\n"
+                            f"      if: ${{{{ steps.paths.outputs.{m.name}_SOURCE && ! steps.restore_install_{m.name}.outputs.cache-hit }}}}\n"
                         )
                     else:
                         out.write(
@@ -1271,10 +1308,10 @@ jobs:
                 )
 
                 if args.use_build_cache and not src_dir_arg:
-                    out.write(f"    - name: Save {m.name} to cache\n")
+                    out.write(f"    - name: Save {m.name} install to cache\n")
                     out.write("      uses: actions/cache/save@v4\n")
                     out.write(
-                        f"      if: ${{{{ steps.paths.outputs.{m.name}_SOURCE && ! steps.restore_{m.name}.outputs.cache-hit }}}}\n"
+                        f"      if: ${{{{ steps.paths.outputs.{m.name}_SOURCE && ! steps.restore_install_{m.name}.outputs.cache-hit }}}}\n"
                     )
                     out.write("      with:\n")
                     out.write(
